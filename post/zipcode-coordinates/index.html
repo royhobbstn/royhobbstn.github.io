@@ -1,0 +1,210 @@
+
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+
+  
+  <meta charset="UTF-8">
+  <title>
+    Zipcode Coordinates | JavaScript, Geo, and more...
+  </title>
+
+
+  
+  <meta name="viewport" content="width=device-width,user-scalable=no,maximum-scale=1,initial-scale=1">
+
+  
+  <link rel="canonical" href="https://royhobbstn.github.io/post/zipcode-coordinates/"/>
+
+  
+  <link rel="stylesheet" href="/css/sanitize.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/highlight_monokai.css">
+  <link rel="stylesheet" href="/css/theme.css">
+  <link rel="stylesheet" href="/css/custom.css">
+  <link rel="stylesheet" href="/css/common.css">
+
+  
+  <link href="https://royhobbstn.github.io/index.xml" rel="alternate" type="application/rss+xml" title="JavaScript, Geo, and more..." />
+  <link href="https://royhobbstn.github.io/index.xml" rel="feed" type="application/rss+xml" title="JavaScript, Geo, and more..." />
+
+  
+  
+
+
+</head>
+
+
+
+<body>
+<div class="container">
+
+  
+  <header role="banner">
+    <div class="row gutters">
+      <div id="site-title" class="col span_6">
+        <h1><a href="https://royhobbstn.github.io/">JavaScript, Geo, and more...</a></h1>
+        <h2>by Daniel Trone</h2>
+      </div>
+      <div id="social" class="col span_6">
+        <ul>
+          <li><a href="https://twitter.com/danieljtrone" target="_blank">Twitter</a></li>
+          
+          <li><a href="https://www.linkedin.com/in/dtrone" target="_blank">LinkedIn</a></li>
+          <li><a href="https://github.com/royhobbstn" target="_blank">GitHub</a></li>
+          <li><a href="https://royhobbstn.github.io/index.xml" type="application/rss+xml" target="_blank">RSS</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+
+  
+  <main id="single" role="main">
+    <div class="article-header">
+      <h1>Zipcode Coordinates</h1>
+      <div class="meta">
+        Jan 21, 2019 &nbsp;
+        
+      </div>
+    </div>
+    <article>
+      
+
+<p>US Zipcodes are the geographic area we love to hate; a delineation designed to facilitate the delivery of mail which has unfortunately become a common area of aggregation.</p>
+
+<figure class="rounded-corners drop-shadow max-image">
+    <img src="/img/newman_zipcodes.jpg"
+         alt="Newman on Zipcodes" width="60%"/> 
+</figure>
+
+
+<p>Their lines cross highways and rivers, show no respect for the neighborhood demographics you&rsquo;re trying to study, and don&rsquo;t align neatly whatsoever to city and county boundaries (despite what your boss probably believes).</p>
+
+<p>But ya know what?  Sometimes they&rsquo;re all we have.  And oddly, despite their quirks, people seem to identify with them.</p>
+
+<p>But here&rsquo;s the thing; using zipcodes for mapping isn&rsquo;t anywhere near as straightforward as you might think.  Don&rsquo;t believe me?  Navigate over to <a href="https://www.usps.com">www.usps.com</a> and download the most recent version.  I&rsquo;ll wait.</p>
+
+<p>&hellip;</p>
+
+<p>Okay, so I&rsquo;ve been waiting now for over thirty minutes and am beginning to feel guilty.  Truth be told, there is no canonical USPS Zipcode shapefile available to download.  There probably shouldn&rsquo;t be.  After all, they were designed around mail routes, not as &lsquo;mail areas&rsquo;.</p>
+
+<p>This does result in quite the conundrum.  Thankfully, a number of private companies have bridged this gap, and that&rsquo;s certainly an option.  The most common free alternative is to go with the <a href="https://www.census.gov/cgi-bin/geo/shapefiles/index.php">US Census Bureau TIGER ZCTA</a> shapefiles.</p>
+
+<p>ZCTA?  Sorry about that, my cat walked across my keyboard.  What I meant to type was &ldquo;Zip Code Tabulation Area&rdquo;.  It&rsquo;s like a zipcode, but it&rsquo;s not.  Thankfully, for our purposes they&rsquo;re still the 5 digit numbers we&rsquo;re all familiar with.</p>
+
+<p>The US Census Bureau has made a good effort in mapping this elusive geography, but (through little fault of their own) it&rsquo;s far from perfect;</p>
+
+<ul>
+<li><strong>There are holes!</strong><br /></li>
+</ul>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/zcta_holes.jpg"
+         alt="Holes in ZCTA File" width="90%"/> <figcaption>
+            <h4>Zipcodes do not create a neat fabric across the US. The holes occur only in unpopulated areas, but you&#39;ll still need to do some additional processing to account for this.</h4>
+        </figcaption>
+</figure>
+
+
+<ul>
+<li><strong>Aggregating to 3 or 4 digit zips will leave you with &lsquo;ugly&rsquo; areas not well suited for &lsquo;proper&rsquo; cartography</strong></li>
+</ul>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/wv_3zip.jpg"
+         alt="Zipcodes Aggregated by first 3 digits" width="90%"/> <figcaption>
+            <h4>A 3-digit zipcode aggregation devolves into an unruly geographic patchwork.  West Virginia is particularly affected.</h4>
+        </figcaption>
+</figure>
+
+
+<ul>
+<li><strong>In real world terms, a lot of zipcodes are missing</strong></li>
+</ul>
+
+<p>The last point is the most difficult to deal with, and honestly, I&rsquo;d imagine the commercial products suffer the same defect.  I don&rsquo;t have a great answer for WHY this occurs, but from my experience it&rsquo;s not just a data entry problem.</p>
+
+<p>Obviously, not every 5 digit combination equates to a real life zip.  But, there are a lot more &lsquo;used combinations&rsquo; than are represented in any data set I&rsquo;ve seen.  Long story short, if you only use the zipcodes (sorry, ZCTA&rsquo;s) that TIGER provides, you&rsquo;re going to be unable to map a lot of data.</p>
+
+<p>Which brings me to a data hack that could help (not my original idea, but one that is too good to keep a secret).  Keep in mind, depending on your use case, this may be wildly inappropriate.  It mainly applies to mapping zip <strong>centroid</strong> points at a national scale.</p>
+
+<h2 id="assumptions">Assumptions</h2>
+
+<ul>
+<li>There are a finite set of possible 5-digit zips. (100,000 to be exact)</li>
+<li>The Census ZCTA file contains a decent sample of these (33,144 as of 2018)</li>
+<li>There is a hierarchical relationship inherent in the zip digits.</li>
+</ul>
+
+<p>Then it follows:</p>
+
+<ul>
+<li>We can interpolate the missing values.</li>
+</ul>
+
+<h2 id="methodology">Methodology</h2>
+
+<ol>
+<li><p>Create an aggregated lookup; get the average coordinates for every zip that starts with a 0, then a 1, etc. Then get the average coordinates for every zip that starts with 00, 01, etc.</p></li>
+
+<li><p>Loop over every possible 5 digit combination. If the coordinates for that zip are not found in the ZCTA file, use the 4 digit aggregate. If that doesn&rsquo;t exist, use the 3 digit aggregate, etc.</p></li>
+
+<li><p>Add a bit of random entropy to each point to prevent centroids from having the same location (optional).</p></li>
+</ol>
+
+<h2 id="end-result">End Result</h2>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/interpolated_zips.jpg"
+         alt="Interpolated Zipcodes" width="90%"/> <figcaption>
+            <h4>Original ZCTA centroids in orange.  Additional interpolated centroids in blue.</h4>
+        </figcaption>
+</figure>
+
+
+<p>If you&rsquo;d like to see the end result, feel free to download the <a href="https://raw.githubusercontent.com/royhobbstn/zip-coordinates/master/zip_lookup.json">plain JSON lookup</a>, or alternately, the <a href="https://raw.githubusercontent.com/royhobbstn/zip-coordinates/master/zip_points.geojson">GeoJSON version</a>.</p>
+
+<p>If you&rsquo;d like to check out the source yourself and make a few tweaks (or file an issue), navigate over to the <a href="https://github.com/royhobbstn/zip-coordinates">zip-coordinates</a> project page on Github.</p>
+
+      
+      
+      
+    </article>
+    
+
+
+  </main>
+  
+  <nav class="pagination-single">
+    
+    
+  </nav>
+
+
+  
+  <footer role="contentinfo">
+    <div style="text-align:center;">
+      
+      
+    </div>
+  </footer>
+
+
+</div>
+
+<script src="/js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-132843468-1', 'auto');
+	ga('send', 'pageview');
+</script>
+
+</body>
+</html>
+
