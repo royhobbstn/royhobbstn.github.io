@@ -1,0 +1,476 @@
+
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+
+  
+  <meta charset="UTF-8">
+  <title>
+    Serving Vector Map Tiles on AWS | JavaScript, Geo, and more...
+  </title>
+
+
+  
+  <meta name="viewport" content="width=device-width,user-scalable=no,maximum-scale=1,initial-scale=1">
+
+  
+  <link rel="canonical" href="https://royhobbstn.github.io/post/aws-vector-tiles-cloudfront/"/>
+
+  
+  <link rel="stylesheet" href="/css/sanitize.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/highlight_monokai.css">
+  <link rel="stylesheet" href="/css/theme.css">
+  <link rel="stylesheet" href="/css/custom.css">
+  <link rel="stylesheet" href="/css/common.css">
+
+  
+  <link href="https://royhobbstn.github.io/index.xml" rel="alternate" type="application/rss+xml" title="JavaScript, Geo, and more..." />
+  <link href="https://royhobbstn.github.io/index.xml" rel="feed" type="application/rss+xml" title="JavaScript, Geo, and more..." />
+
+  
+  
+
+
+</head>
+
+
+
+<body>
+<div class="container">
+
+  
+  <header role="banner">
+    <div class="row gutters">
+      <div id="site-title" class="col span_6">
+        <h1><a href="https://royhobbstn.github.io/">JavaScript, Geo, and more...</a></h1>
+        <h2>by Daniel Trone</h2>
+      </div>
+      <div id="social" class="col span_6">
+        <ul>
+          <li><a href="https://twitter.com/danieljtrone" target="_blank">Twitter</a></li>
+          
+          <li><a href="https://www.linkedin.com/in/dtrone" target="_blank">LinkedIn</a></li>
+          <li><a href="https://github.com/royhobbstn" target="_blank">GitHub</a></li>
+          <li><a href="https://royhobbstn.github.io/index.xml" type="application/rss+xml" target="_blank">RSS</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+
+  
+  <main id="single" role="main">
+    <div class="article-header">
+      <h1>Serving Vector Map Tiles on AWS</h1>
+      <div class="meta">
+        Feb 9, 2019 &nbsp;
+        
+      </div>
+    </div>
+    <article>
+      
+
+<h2 id="motivation">Motivation</h2>
+
+<p>There comes a time in every JS-geo enthusiast&rsquo;s life when they decide they want to leave the safe confines of their tile hosting provider and forge their own path in the wide world of AWS.  The road is fraught with peril.  Luckily, I have traveled these waters before, and will provide a guide to the best of my ability.</p>
+
+<h2 id="requirements">Requirements</h2>
+
+<p>To journey with me you will need to make sure your knapsack contains:</p>
+
+<ul>
+<li><p><a href="https://docs.aws.amazon.com/polly/latest/dg/setting-up.html">AWS account and credentials</a></p>
+
+<ul>
+<li>You&rsquo;ll need to ensure your <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_users_change-permissions.html">IAM user has full access to S3 and Cloudfront</a>
+<br /></li>
+</ul></li>
+
+<li><p>A recent install of <a href="https://github.com/mapbox/tippecanoe#installation">Tippecanoe</a></p>
+
+<ul>
+<li>If you&rsquo;re on a Linux machine, I&rsquo;ve had good luck installing through <a href="http://linuxbrew.sh/">Linux Brew</a>
+<br /></li>
+</ul></li>
+
+<li><p>A <a href="https://docs.mapbox.com/help/glossary/access-token/">Mapbox Access Token</a></p>
+
+<ul>
+<li>Unless you receive a tremendous amount of traffic, this won&rsquo;t cost you anything.  The token will allow use to use Mapbox base tiles to provide a pretty background for our data.</li>
+</ul></li>
+
+<li><p>A recent install of <a href="https://github.com/creationix/nvm#installation">Node / NPM</a></p></li>
+
+<li><p>Access to a Mac or Linux system</p>
+
+<ul>
+<li>If you&rsquo;re on Windows you&rsquo;ll want to SSH into an EC2 instance.</li>
+</ul></li>
+
+<li><p>Novice command line skills</p>
+
+<ul>
+<li>You&rsquo;ve used a few CLI tools before and can edit a text file.  You don&rsquo;t need to be a power user.</li>
+</ul></li>
+</ul>
+
+<h2 id="getting-started">Getting Started</h2>
+
+<p>Let&rsquo;s start with a clean directory and dive in:</p>
+
+<pre><code>mkdir tileDemo
+cd tileDemo
+</code></pre>
+
+<p>For this example we&rsquo;ll be taking a GeoJSON network road dataset (a cleaned-up version of the <a href="https://ops.fhwa.dot.gov/FREIGHT/freight_analysis/faf/index.htm">Freight Analysis Framework</a>).</p>
+
+<p>You can grab it here:</p>
+
+<pre><code>wget https://s3-us-west-2.amazonaws.com/misc-public-files-dt/simple_network.geojson
+</code></pre>
+
+<p>So why make tiles at all?</p>
+
+<p>For one, the file you just downloaded above is 34MB.  It&rsquo;s not reasonable to have your users bear that burden, especially with so many of them on mobile devices (and paying for bandwidth!).  Not to mention how slow the map performance would be.</p>
+
+<p>Tiling also gives us these advantages:</p>
+
+<ul>
+<li><p>The user only ends up downloading detailed data for the portion of the map that they&rsquo;re most interested in.</p></li>
+
+<li><p>The vector tile specification allows for flexible, dynamic styling that you can change in response to user input.</p></li>
+
+<li><p>Vector tiles can be displayed at fractional zoom levels, giving a much smoother zooming experience.</p></li>
+</ul>
+
+<h2 id="tippecanoe">Tippecanoe</h2>
+
+<p>So what&rsquo;s the best way to turn your geo-dataset into tiles?  <a href="https://github.com/mapbox/tippecanoe">Tippecanoe!</a></p>
+
+<p>I could use a lot of words to describe Tippecanoe, but succinctly; it&rsquo;s an absolute marvel of engineering.  One could devote years to mastering the intricacies of the tool, given the sheer number of options and settings available.  Don&rsquo;t let that deter you however, as a beginner you can start simply.</p>
+
+<p>Given that you&rsquo;ve installed Tippecanoe, we&rsquo;re going to take our GeoJSON file and convert it to tiles.</p>
+
+<pre><code>tippecanoe -e ./tiles -z9 --layer=network simple_network.geojson
+</code></pre>
+
+<p>We&rsquo;re eschewing the more advanced options, but for this use-case, it makes no difference.  Here&rsquo;s a breakdown of what the above command translates to:</p>
+
+<p><strong>-e ./tiles</strong> : Output to a directory of tiles (as opposed to a single .mbtiles file)</p>
+
+<p><strong>-z9</strong> : Build tiles from Zoom Level 0 (default) up to Zoom Level 9.</p>
+
+<p><strong>&ndash;layer=network</strong> : The layer name that you&rsquo;ll be putting the data into.  This option isn&rsquo;t required, but it&rsquo;s a good one to keep track of.  We&rsquo;ll come back to this.</p>
+
+<p><strong>simple_network.geojson</strong> : the input file name</p>
+
+<h2 id="viewing-tiles-locally">Viewing Tiles Locally</h2>
+
+<p>We&rsquo;ve created a directory of .pbf files.  What can we do with them?
+I know I promised S3 and Cloudfront, but I just can&rsquo;t help myself.  Let&rsquo;s look at these tiles now!</p>
+
+<p>Create a new file:</p>
+
+<pre><code>touch index.html
+</code></pre>
+
+<p>Fill it with the following code (<a href="https://docs.mapbox.com/mapbox-gl-js/example/simple-map/">based upon the Mapbox quickstart</a> with a few tweaks) to kick up a webpage with Mapbox GL JS.</p>
+
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;meta charset='utf-8' /&gt;
+    &lt;title&gt;Display a map&lt;/title&gt;
+    &lt;meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' /&gt;
+    &lt;script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.js'&gt;&lt;/script&gt;
+    &lt;link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.53.0/mapbox-gl.css' rel='stylesheet' /&gt;
+    &lt;style&gt;
+        body { margin:0; padding:0; }
+        #map { position:absolute; top:0; bottom:0; width:100%; }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+&lt;div id='map'&gt;&lt;/div&gt;
+
+&lt;script&gt;
+
+  // TODO for you; enter your Mapbox Access Token below
+  mapboxgl.accessToken = &quot;PUT YOUR KEY HERE&quot;;
+  
+  var map = new mapboxgl.Map({
+    container: 'map', // container id
+    style: 'mapbox://styles/mapbox/dark-v9',
+    center: [-74.50, 40],
+    zoom: 6
+  });
+
+  map.on('load', function() {
+
+    window.map.addSource('tiles', {
+      &quot;type&quot;: &quot;vector&quot;,
+      &quot;minzoom&quot;: 0,
+      &quot;maxzoom&quot;: 9,
+      &quot;tiles&quot;: [`http://localhost:5000/tiles/{z}/{x}/{y}.pbf`]
+    });
+
+    map.addLayer({
+      &quot;id&quot;: &quot;test&quot;,
+      &quot;type&quot;: &quot;line&quot;,
+      &quot;source&quot;: &quot;tiles&quot;,
+      &quot;source-layer&quot;: &quot;network&quot;,
+      &quot;paint&quot;: {
+        &quot;line-color&quot;: &quot;cyan&quot;,
+        &quot;line-width&quot;: 0.5
+      }
+    });
+    
+  });
+
+&lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;
+</code></pre>
+
+<p>Of note above:  <code>source-layer</code> is the layer name we mentioned above (<code>--layer=network</code>).</p>
+
+<ul>
+<li>IMPORTANT: Don&rsquo;t forget to add your Mapbox Token string where it says: <em>PUT YOUR KEY HERE</em></li>
+</ul>
+
+<h2 id="local-server">Local Server</h2>
+
+<p>Unfortunately, we&rsquo;re still not quite ready.  Mapbox is not going to be able to read your files straight from the file system, so we need to set up a lightweight server in the quickest way possible;</p>
+
+<pre><code>npm install serve -g
+</code></pre>
+
+<p>We&rsquo;ll then need to create a configuration file to let <code>serve</code> understand a little more about our map tiles:</p>
+
+<pre><code>touch serve.json
+</code></pre>
+
+<p>and we&rsquo;ll fill the file with:</p>
+
+<pre><code>{
+  &quot;headers&quot;: [
+    {
+      &quot;source&quot; : &quot;**/*.@(pbf)&quot;,
+      &quot;headers&quot; : [{
+          &quot;key&quot; : &quot;Content-Encoding&quot;,
+          &quot;value&quot; : &quot;gzip&quot;
+        }]
+    }
+  ]
+}
+</code></pre>
+
+<p>We&rsquo;re telling our server that all the .pbf files (our map tiles) are already gzip-ed.  Without this, the browser has a hard time figuring out what to do with the incoming data.</p>
+
+<p>With that out of the way, it&rsquo;s as simple as typing:</p>
+
+<pre><code>serve
+</code></pre>
+
+<p>and navigating to <a href="http://localhost:5000/">http://localhost:5000/</a></p>
+
+<p>With any luck:</p>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/network-test.jpg"
+         alt="Road Network overlay on the Great Lakes Region"/> <figcaption>
+            <h4>Hopefully this provides a sanity check.  There&#39;s nothing worse than getting to the end of a tutorial only to have things not work due to an error early-on.</h4>
+        </figcaption>
+</figure>
+
+
+<p>You can stop the server with a Ctrl-C, we&rsquo;re going to trudge onwards.</p>
+
+<h2 id="s3">S3</h2>
+
+<p>For the next portion, you&rsquo;re going to want to make sure your AWS Credentials are set appropriately.</p>
+
+<p>First off, we&rsquo;re going to create an S3 Bucket to store our tiles in.</p>
+
+<p>I&rsquo;m going to call my bucket <code>faf-tiles</code>.  Since bucket names are unique in AWS, you&rsquo;ll need to come up with something original.</p>
+
+<pre><code>aws s3 mb s3://faf-tiles
+</code></pre>
+
+<p>Then we&rsquo;ll need to upload our local tiles to the bucket.  This is where you <strong>need</strong> the AWS CLI, as this would be untenable with the standard S3 AWS User Interface.</p>
+
+<pre><code>aws s3 sync ./tiles s3://faf-tiles --content-encoding gzip
+</code></pre>
+
+<p>You&rsquo;ll notice we have to specify <code>--content-encoding gzip</code> similarly to how we specified it on our local server.</p>
+
+<p>Lastly you&rsquo;ll need to open up the bucket for public read access, and enable <a href="https://en.wikipedia.org/wiki/Cross-origin_resource_sharing">CORS</a>.</p>
+
+<h3 id="bucket-policy">Bucket Policy</h3>
+
+<p>Create a blank file for your bucket policy configuration:</p>
+
+<pre><code>touch s3-policy.json
+</code></pre>
+
+<p>Configure it to allow GET requests:</p>
+
+<pre><code>{
+  &quot;Version&quot;: &quot;2012-10-17&quot;,
+  &quot;Id&quot;: &quot;Policy1514682206318&quot;,
+  &quot;Statement&quot;: [
+    {
+      &quot;Sid&quot;: &quot;Stmt1514682202401&quot;,
+      &quot;Effect&quot;: &quot;Allow&quot;,
+      &quot;Principal&quot;: {
+        &quot;AWS&quot;: &quot;*&quot;
+      },
+      &quot;Action&quot;: &quot;s3:GetObject&quot;,
+      &quot;Resource&quot;: &quot;arn:aws:s3:::faf-tiles/*&quot;
+    }
+  ]
+}
+</code></pre>
+
+<p><strong>Note:</strong> the <code>Resource</code> line, as you&rsquo;ll need to change <code>faf-tiles</code> to your bucket name.</p>
+
+<p>Then, assign the policy to your bucket:</p>
+
+<pre><code>aws s3api put-bucket-policy --bucket faf-tiles --policy file://s3-policy.json
+</code></pre>
+
+<h3 id="cors">CORS</h3>
+
+<p>Create a CORS configuration file</p>
+
+<pre><code>touch s3-cors.json
+</code></pre>
+
+<p>Configure it to allow GET requests from anywhere:</p>
+
+<pre><code>{
+  &quot;CORSRules&quot;: [
+    {
+      &quot;AllowedOrigins&quot;: [&quot;*&quot;],
+      &quot;AllowedHeaders&quot;: [&quot;Authorization&quot;],
+      &quot;AllowedMethods&quot;: [&quot;GET&quot;],
+      &quot;MaxAgeSeconds&quot;: 3000
+    }
+  ]
+}
+</code></pre>
+
+<p>Assign this policy to your S3 bucket</p>
+
+<pre><code>aws s3api put-bucket-cors --bucket faf-tiles --cors-configuration file://s3-cors.json
+</code></pre>
+
+<h2 id="cloudfront">Cloudfront</h2>
+
+<p>We <em>could</em> stop here, re-point our Mapbox <code>&quot;tiles&quot;:</code> URL and call it a day (and that&rsquo;s certainly an option if you&rsquo;re working on a hobby project and don&rsquo;t expect a lot of views).</p>
+
+<p>However, it&rsquo;s not much extra work to increase the performance of your tiles, and have them scale to whatever volume the internet throws your way.</p>
+
+<p>The way we do that is by creating several distributions through AWS Cloudfront.  Cloudfront will cache the tiles and serve them from various locations around the globe closer to your users.</p>
+
+<pre><code>aws cloudfront create-distribution --origin-domain-name faf-tiles.s3.amazonaws.com
+</code></pre>
+
+<p>There are a lot of configuration options available through Cloudfront (like supporting custom domain names).  Rather conveniently, the defaults are going to be fine.</p>
+
+<p>Take note of the output you receive from this command, in particular, near the top you&rsquo;ll notice something that looks like (but won&rsquo;t be the same as):</p>
+
+<pre><code>&quot;DomainName&quot;: &quot;d1nwk4zr2blzen.cloudfront.net&quot;,
+</code></pre>
+
+<p>Copy It.  Return to your <code>index.html</code>, and replace your old tile source declaration <code>&quot;tiles&quot;:</code> entry with that domain:</p>
+
+<pre><code>window.map.addSource('tiles', {
+  &quot;type&quot;: &quot;vector&quot;,
+  &quot;minzoom&quot;: 0,
+  &quot;maxzoom&quot;: 9,
+  &quot;tiles&quot;: [`https://d1nwk4zr2blzen.cloudfront.net/{z}/{x}/{y}.pbf`]
+});
+</code></pre>
+
+<p>Now the really fun part begins.  Cloudfront is doing a lot of work for you behind the scenes, so try to be patient.</p>
+
+<p>Go fix yourself a drink; coffee, tea, beer, wine, kombucha, diet coke, anything (I&rsquo;m not here to judge.)</p>
+
+<p>Really enjoy the drink.  Stop thinking about Cloudfront.  Focus on the drink.  This is an official part of this tutorial.  Give it 15 minutes.</p>
+
+<p>Okay, that was delicious.  Cloudfront is <em>probably</em> done now, so go ahead.  Fire up <code>serve</code> and head back to <a href="http://localhost:5000/">http://localhost:5000/</a></p>
+
+<p>With any luck, you&rsquo;re now receiving tiles from your Cloudfront distribution and life is good.  Bask in the freedom of self-hosted tiles on AWS.</p>
+
+<p>Now, create 2 more identical cloudfront distributions.</p>
+
+<p>What?</p>
+
+<p>Yeah.  You&rsquo;re not done yet.</p>
+
+<p>There&rsquo;s a good reason the <code>&quot;tiles&quot;:</code> property takes an array.  Browsers have limits on the amount of simultaneous connections allowed from the same domain.  If you&rsquo;re moving the map around a bit, you&rsquo;ll exhaust those connections, and the browser will refuse to request another tile until one of the connections opens up again.</p>
+
+<p>To get around that, you can create multiple distributions and feed the URLS into that array.  Mapbox will round-robin the requests to keep the browser on its toes.  That, however, is an exercise best left to the reader.</p>
+
+<h2 id="is-it-all-worth-it">Is it all Worth It?</h2>
+
+<p>If you&rsquo;ve gotten this far, it&rsquo;s probably too late.  However, I would be remiss to forget mentioning that Mapbox can host your tiles for you.  It&rsquo;s a paid service, but if this tutorial is a bit overwhelming, a little cost could save a lot of time as well as your sanity.  I don&rsquo;t have any proof, but I strongly suspect that their methods are quite a bit more streamlined and optimized than what I have outlined here.</p>
+
+<p><sub>Necessary disclaimer that I am not affiliated with Mapbox in any way, just a huge fan.</sub></p>
+
+<h2 id="resources">Resources</h2>
+
+<p>If you&rsquo;d like to see the end result, check out the dataset hosted live on Github Pages:</p>
+
+<p><a href="https://www.danieltrone.com/map-tiles-s3/">https://www.danieltrone.com/map-tiles-s3/</a></p>
+
+<p>All the materials in this tutorial are also available in the repo.:</p>
+
+<p><a href="https://github.com/royhobbstn/map-tiles-s3">https://github.com/royhobbstn/map-tiles-s3</a></p>
+
+      
+      
+      
+    </article>
+    
+
+
+  </main>
+  
+  <nav class="pagination-single">
+    
+      <span class="previous">&larr; <a href="https://royhobbstn.github.io/post/zipcode-coordinates/" rel="prev">Zipcode Coordinates</a></span>
+    
+    
+  </nav>
+
+
+  
+  <footer role="contentinfo">
+    <div style="text-align:center;">
+      
+      
+    </div>
+  </footer>
+
+
+</div>
+
+<script src="/js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-132843468-1', 'auto');
+	ga('send', 'pageview');
+</script>
+
+</body>
+</html>
+
