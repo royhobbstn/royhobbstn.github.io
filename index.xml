@@ -2,31 +2,31 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>JavaScript, Geo, and more...</title>
-    <link>https://royhobbstn.github.io/</link>
+    <link>https://www.danieltrone.com/</link>
     <description>Recent content on JavaScript, Geo, and more...</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
     <lastBuildDate>Sat, 09 Feb 2019 00:00:00 +0000</lastBuildDate>
     
-	<atom:link href="https://royhobbstn.github.io/index.xml" rel="self" type="application/rss+xml" />
+	<atom:link href="https://www.danieltrone.com/index.xml" rel="self" type="application/rss+xml" />
     
     
     <item>
       <title>Serving Vector Map Tiles on AWS</title>
-      <link>https://royhobbstn.github.io/post/aws-vector-tiles-cloudfront/</link>
+      <link>https://www.danieltrone.com/post/aws-vector-tiles-cloudfront/</link>
       <pubDate>Sat, 09 Feb 2019 00:00:00 +0000</pubDate>
       
-      <guid>https://royhobbstn.github.io/post/aws-vector-tiles-cloudfront/</guid>
+      <guid>https://www.danieltrone.com/post/aws-vector-tiles-cloudfront/</guid>
       <description>Motivation There comes a time in every JS-geo enthusiast&amp;rsquo;s life when they decide they want to leave the safe confines of their tile hosting provider and forge their own path in the wide world of AWS. The road is fraught with peril. Luckily, I have traveled these waters before, and will provide a guide to the best of my ability.
 Requirements To journey with me you will need to make sure your knapsack contains:</description>
     </item>
     
     <item>
       <title>Zipcode Coordinates</title>
-      <link>https://royhobbstn.github.io/post/zipcode-coordinates/</link>
+      <link>https://www.danieltrone.com/post/zipcode-coordinates/</link>
       <pubDate>Mon, 21 Jan 2019 00:00:00 +0000</pubDate>
       
-      <guid>https://royhobbstn.github.io/post/zipcode-coordinates/</guid>
+      <guid>https://www.danieltrone.com/post/zipcode-coordinates/</guid>
       <description>US Zipcodes are the geographic area we love to hate; a delineation designed to facilitate the delivery of mail which has unfortunately become a common area of aggregation.
  Their lines cross highways and rivers, show no respect for the neighborhood demographics you&amp;rsquo;re trying to study, and don&amp;rsquo;t align neatly whatsoever to city and county boundaries (despite what your boss probably believes).
 But ya know what? Sometimes they&amp;rsquo;re all we have.</description>
