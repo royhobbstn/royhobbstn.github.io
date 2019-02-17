@@ -73,11 +73,11 @@
 
 <h1 id="motivation">Motivation</h1>
 
-<p>It may have happened to you.  You met a beautiful shapefile on the internet and knew instantly that it was &lsquo;The One&rsquo;.  It checked all the boxes;  good geographic coverage, plenty of attributes, even metadata!</p>
+<p>It may have happened to you.  You meet a beautiful shapefile on the internet and know instantly that it is &lsquo;The One&rsquo;.  It checks all the boxes;  good geographic coverage, plenty of attributes, even metadata!</p>
 
-<p>Fast forward a few hours and everything is going according to plan.  You build a network together, you plot a few routes.  It&rsquo;s so perfect, it&rsquo;s everything you ever dreamed!</p>
+<p>Fast forward a few hours and everything is going according to plan.  You&rsquo;ve built a network together, you&rsquo;ve plotted some routes.  It&rsquo;s perfect, it&rsquo;s everything you&rsquo;ve ever dreamed!</p>
 
-<p>But then one day you come down with an uneasy feeling in the pit of your stomach.  You glance over at your network.  Wait, what&rsquo;s that?  Has that always been there?  You take a closer look and notice that something is very, very wrong.</p>
+<p>But then one day you come down with an uneasy feeling in the pit of your stomach.  You glance over at your network.  Wait, what&rsquo;s that?  That can&rsquo;t be!  You take a closer look and notice that something is very, very wrong.</p>
 
 <p>Your routes are lies.</p>
 
@@ -85,7 +85,7 @@
 
 <figure class="rounded-corners drop-shadow small-print pad-top">
     <img src="/img/bad_network.jpg"
-         alt="A really poor network route." width="90%"/> <figcaption>
+         alt="A really poor network route." width="70%"/> <figcaption>
             <h4>You probably should have done some network QA/QC first.  Yes, this really happened to me.  It could happen to you too.</h4>
         </figcaption>
 </figure>
@@ -95,21 +95,21 @@
 
 <p>I know what you&rsquo;re thinking.  How can I prevent this from happening to me?</p>
 
-<p>While I can&rsquo;t guarantee that I can find all the flaws in your network, I can steer you around a few common pitfalls that you&rsquo;re likely to encounter.</p>
+<p>While I can&rsquo;t promise that I can find all the flaws in your network, I can steer you around a few common pitfalls that you&rsquo;ll likely encounter.</p>
 
 <h3 id="snap-nearby-nodes">Snap Nearby Nodes</h3>
 
 <p>This is a very common issue for GeoJSON networks, and it&rsquo;s very difficult to spot by visual inspection.  Why is it so common?</p>
 
-<p>As you may know, networks are composed of nodes (points) and edges (lines).  If you take a look at a GeoJSON network, you&rsquo;re only going to see lines.  So if you&rsquo;re trying to convert to a network format, where are you going to get Nodes from?</p>
+<p>As you may know, networks are composed of nodes (points) and edges (lines).  If you take a look at a typical GeoJSON network (essentially a collection of LineStrings), you&rsquo;re only going to see lines.  So if you&rsquo;re supposed to route with this, where are the Nodes coming from?</p>
 
-<p>The most common approach is to take the start and end coordinate of a GeoJSON LineString and turn those points into network node strings.</p>
+<p>The most common approach is to take the start and end coordinate of a GeoJSON LineString and turn those points into network node strings.  So instead of <code>Node A</code> and <code>Node B</code>, your Node labels are its actual coordinates (in string format).</p>
 
-<p>The downside is that &ldquo;-105.0011,40.234&rdquo; is not the same node as &ldquo;-105.0012,40.234&rdquo;.  It doesn&rsquo;t matter how &lsquo;close&rsquo; they are in real world terms, if your LineStrings are even slightly disconnected from each other, a route between them will fail.</p>
+<p>The downside is that <code>&quot;-105.0011,40.234&quot;</code> is not the same node as <code>&quot;-105.0012,40.234&quot;</code>.  It doesn&rsquo;t matter how <em>close</em> they are in real world terms, if your LineStrings are even slightly disconnected from each other, a route between them will fail.</p>
 
-<p>However, before you break out your ArcMap license and start snapping, you may want to explore a library I cooked up for this task.</p>
+<p>However, before you break out your ArcMap license and start snapping, you may want to explore a library I cooked up specifically for this task.</p>
 
-<p>Code Example:</p>
+<p><strong>Code Example:</strong></p>
 
 <pre><code class="language-bash">npm install geojson-network-node-snap --save
 </code></pre>
@@ -134,13 +134,13 @@ async function main() {
     await fs.writeFile('./corrected_network.geojson', JSON.stringify(newGeo), 'utf8');
 </code></pre>
 
-<p>Explanation:</p>
+<p><strong>Explanation:</strong></p>
 
 <p>While some methods may approach this task in terms of data precision and tolerance (for example, treating all points within a certain distance of each other as being the same), my library looks purely at <a href="https://en.wikipedia.org/wiki/Degree_(graph_theory)">single valency nodes</a>:</p>
 
 <figure class="rounded-corners drop-shadow small-print pad-top white-background">
     <img src="/img/valency.jpg"
-         alt="A diagram explaining the concept of valency (degree)." width="90%"/> <figcaption>
+         alt="A diagram explaining the concept of valency (degree)." width="70%"/> <figcaption>
             <h4>The number in each node refers to its valency (or degree).  Notice a pattern?</h4>
         </figcaption>
 </figure>
@@ -154,7 +154,7 @@ async function main() {
 
 <figure class="rounded-corners drop-shadow small-print pad-top white-background">
     <img src="/img/snap_nodes.jpg"
-         alt="A network diagram showing the connections the authors library would like to create." width="90%"/> <figcaption>
+         alt="A network diagram showing the connections the authors library would like to create." width="70%"/> <figcaption>
             <h4>Note the links in red.  The library attempts to alter a single valency node&#39;s coordinates to that of the next closest node, when within a specified distance threshold.</h4>
         </figcaption>
 </figure>
@@ -168,7 +168,7 @@ async function main() {
 
 <figure class="rounded-corners drop-shadow small-print pad-top">
     <img src="/img/alike_features.jpg"
-         alt="Two nearly identical LineString features that are next to each other." width="90%"/> <figcaption>
+         alt="Two nearly identical LineString features that are next to each other." width="50%"/> <figcaption>
             <h4>All attributes are identical and the features are adjoining.  Join these into a single feature to save your network routing algorithm a bit of work.</h4>
         </figcaption>
 </figure>
@@ -219,31 +219,31 @@ async function main() {
 
 <p>In other cases you can be reasonably sure that crossing lines were all supposed to be connected, but due to an error somewhere along the way, some intersections were missed.</p>
 
-<p>Before:</p>
+<p><strong>Before:</strong></p>
 
 <figure class="rounded-corners drop-shadow small-print pad-top">
     <img src="/img/before_split.jpg"
-         alt="A GeoJSON Network with crossing lines" width="90%"/> <figcaption>
+         alt="A GeoJSON Network with crossing lines" width="70%"/> <figcaption>
             <h4>If you know that all your intersections are supposed to be nodes, there are tools that can help.</h4>
         </figcaption>
 </figure>
 
 
-<p>How to do this?</p>
+<p><strong>How to do this?</strong></p>
 
 <p><a href="https://gis.stackexchange.com/questions/98087/split-lines-at-intersection-of-other-lines">There are a number of good ways to split lines at intersections</a>.  But none of those fit well into my workflow, so I created a javascript tool to help:</p>
 
-<p>After:</p>
+<p><strong>After:</strong></p>
 
 <figure class="rounded-corners drop-shadow small-print pad-top">
     <img src="/img/after_split.jpg"
-         alt="GeoJSON Network where crossing lines have een split at their intersections" width="90%"/> <figcaption>
+         alt="GeoJSON Network where crossing lines have een split at their intersections" width="70%"/> <figcaption>
             <h4>After running your dataset through the tool, this would be the result.</h4>
         </figcaption>
 </figure>
 
 
-<p>Example Code:</p>
+<p><strong>Example Code:</strong></p>
 
 <pre><code class="language-bash">npm install geojson-split-crossing-lines --save
 </code></pre>
@@ -268,13 +268,13 @@ async function main() {
 
 <figure class="rounded-corners drop-shadow small-print pad-top">
     <img src="/img/disconnected.jpg"
-         alt="A disconnected portion of a road network" width="90%"/> <figcaption>
+         alt="A disconnected portion of a road network" width="70%"/> <figcaption>
             <h4>You may run into disconnected areas of your network.  Don&#39;t ignore them, or they&#39;ll come back to bite you.</h4>
         </figcaption>
 </figure>
 
 
-<p>Can&rsquo;t the routing algorithm just avoid these areas?</p>
+<p><strong>Can&rsquo;t the routing algorithm just avoid these areas?</strong></p>
 
 <p>Well, that&rsquo;s not really how this works.  When you&rsquo;re routing between 2 real points (either lat/lng pairs, zipcodes, city names), the first process your algorithm must do is to convert the input data into real-world network coordinates.</p>
 
@@ -292,17 +292,17 @@ async function main() {
 
 <figure class="rounded-corners drop-shadow small-print pad-top">
     <img src="/img/nearest_point.jpg"
-         alt="Illustrated process to choose routable points on a network" width="90%"/> <figcaption>
+         alt="Illustrated process to choose routable points on a network" width="70%"/> <figcaption>
             <h4>Disconnected network areas can wreak havoc on routing</h4>
         </figcaption>
 </figure>
 
 
-<p>What can I do about this?</p>
+<p><strong>What can I do about this?</strong></p>
 
 <p>The solution is to remove these disconnected pieces from your network.</p>
 
-<p>Example Code:</p>
+<p><strong>Example Code:</strong></p>
 
 <pre><code class="language-bash">npm install geojson-to-adjacency-list --save
 </code></pre>
