@@ -3,7 +3,7 @@
     border-radius: 10px;
 }
 .drop-shadow img {
-    box-shadow: 10px 10px 10px #ccc;
+    border: 1px solid #ccc;
 }
 .small-print figcaption h4 {
     font-size: 10px;
@@ -17,4 +17,8 @@
 
 .max-image img {
     max-width: 500px;
+}
+
+.white-background img{
+    background-color: white;
 }

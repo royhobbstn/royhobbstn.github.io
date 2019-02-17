@@ -6,10 +6,21 @@
     <description>Recent content in Posts on JavaScript, Geo, and more...</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Sat, 09 Feb 2019 00:00:00 +0000</lastBuildDate>
+    <lastBuildDate>Sat, 16 Feb 2019 00:00:00 +0000</lastBuildDate>
     
 	<atom:link href="https://www.danieltrone.com/post/index.xml" rel="self" type="application/rss+xml" />
     
+    
+    <item>
+      <title>Cleaning a GeoJSON Network</title>
+      <link>https://www.danieltrone.com/post/clean-geojson-network-javascript/</link>
+      <pubDate>Sat, 16 Feb 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://www.danieltrone.com/post/clean-geojson-network-javascript/</guid>
+      <description>Motivation It may have happened to you. You met a beautiful shapefile on the internet and knew instantly that it was &amp;lsquo;The One&amp;rsquo;. It checked all the boxes; good geographic coverage, plenty of attributes, even metadata!
+Fast forward a few hours and everything is going according to plan. You build a network together, you plot a few routes. It&amp;rsquo;s so perfect, it&amp;rsquo;s everything you ever dreamed!
+But then one day you come down with an uneasy feeling in the pit of your stomach.</description>
+    </item>
     
     <item>
       <title>Serving Vector Map Tiles on AWS</title>

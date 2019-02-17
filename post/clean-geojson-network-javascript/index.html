@@ -1,0 +1,394 @@
+
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+
+  
+  <meta charset="UTF-8">
+  <title>
+    Cleaning a GeoJSON Network | JavaScript, Geo, and more...
+  </title>
+
+
+  
+  <meta name="viewport" content="width=device-width,user-scalable=no,maximum-scale=1,initial-scale=1">
+
+  
+  <link rel="canonical" href="https://www.danieltrone.com/post/clean-geojson-network-javascript/"/>
+
+  
+  <link rel="stylesheet" href="/css/sanitize.css">
+  <link rel="stylesheet" href="/css/responsive.css">
+  <link rel="stylesheet" href="/css/highlight_monokai.css">
+  <link rel="stylesheet" href="/css/theme.css">
+  <link rel="stylesheet" href="/css/custom.css">
+  <link rel="stylesheet" href="/css/common.css">
+
+  
+  <link href="https://www.danieltrone.com/index.xml" rel="alternate" type="application/rss+xml" title="JavaScript, Geo, and more..." />
+  <link href="https://www.danieltrone.com/index.xml" rel="feed" type="application/rss+xml" title="JavaScript, Geo, and more..." />
+
+  
+  
+
+
+</head>
+
+
+
+<body>
+<div class="container">
+
+  
+  <header role="banner">
+    <div class="row gutters">
+      <div id="site-title" class="col span_6">
+        <h1><a href="https://www.danieltrone.com/">JavaScript, Geo, and more...</a></h1>
+        <h2>by Daniel Trone</h2>
+      </div>
+      <div id="social" class="col span_6">
+        <ul>
+          <li><a href="https://twitter.com/danieljtrone" target="_blank">Twitter</a></li>
+          
+          <li><a href="https://www.linkedin.com/in/dtrone" target="_blank">LinkedIn</a></li>
+          <li><a href="https://github.com/royhobbstn" target="_blank">GitHub</a></li>
+          <li><a href="https://www.danieltrone.com/index.xml" type="application/rss+xml" target="_blank">RSS</a></li>
+        </ul>
+      </div>
+    </div>
+  </header>
+
+
+  
+  <main id="single" role="main">
+    <div class="article-header">
+      <h1>Cleaning a GeoJSON Network</h1>
+      <div class="meta">
+        Feb 16, 2019 &nbsp;
+        
+      </div>
+    </div>
+    <article>
+      
+
+<h1 id="motivation">Motivation</h1>
+
+<p>It may have happened to you.  You met a beautiful shapefile on the internet and knew instantly that it was &lsquo;The One&rsquo;.  It checked all the boxes;  good geographic coverage, plenty of attributes, even metadata!</p>
+
+<p>Fast forward a few hours and everything is going according to plan.  You build a network together, you plot a few routes.  It&rsquo;s so perfect, it&rsquo;s everything you ever dreamed!</p>
+
+<p>But then one day you come down with an uneasy feeling in the pit of your stomach.  You glance over at your network.  Wait, what&rsquo;s that?  Has that always been there?  You take a closer look and notice that something is very, very wrong.</p>
+
+<p>Your routes are lies.</p>
+
+<p>They were always lies.  You just never looked close enough.</p>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/bad_network.jpg"
+         alt="A really poor network route." width="90%"/> <figcaption>
+            <h4>You probably should have done some network QA/QC first.  Yes, this really happened to me.  It could happen to you too.</h4>
+        </figcaption>
+</figure>
+
+
+<h2 id="prevention">Prevention</h2>
+
+<p>I know what you&rsquo;re thinking.  How can I prevent this from happening to me?</p>
+
+<p>While I can&rsquo;t guarantee that I can find all the flaws in your network, I can steer you around a few common pitfalls that you&rsquo;re likely to encounter.</p>
+
+<h3 id="snap-nearby-nodes">Snap Nearby Nodes</h3>
+
+<p>This is a very common issue for GeoJSON networks, and it&rsquo;s very difficult to spot by visual inspection.  Why is it so common?</p>
+
+<p>As you may know, networks are composed of nodes (points) and edges (lines).  If you take a look at a GeoJSON network, you&rsquo;re only going to see lines.  So if you&rsquo;re trying to convert to a network format, where are you going to get Nodes from?</p>
+
+<p>The most common approach is to take the start and end coordinate of a GeoJSON LineString and turn those points into network node strings.</p>
+
+<p>The downside is that &ldquo;-105.0011,40.234&rdquo; is not the same node as &ldquo;-105.0012,40.234&rdquo;.  It doesn&rsquo;t matter how &lsquo;close&rsquo; they are in real world terms, if your LineStrings are even slightly disconnected from each other, a route between them will fail.</p>
+
+<p>However, before you break out your ArcMap license and start snapping, you may want to explore a library I cooked up for this task.</p>
+
+<p>Code Example:</p>
+
+<pre><code class="language-bash">npm install geojson-network-node-snap --save
+</code></pre>
+
+<pre><code class="language-javascript">const snapNearby = require('geojson-network-node-snap');
+const fs = require('fs').promises;
+
+main();
+
+async function main() {
+    // load and parse GeoJSON LineString dataset
+    const geo_raw = await fs.readFile('./rough_network.geojson', 'utf8');
+    const geo = JSON.parse(geo_raw);
+    
+    // max km distance to look for a node to snap to
+    const km = 0.05;  
+
+    // perform operation
+    const newGeo = snapNearby(geo, km);
+
+    // save new geojson to file
+    await fs.writeFile('./corrected_network.geojson', JSON.stringify(newGeo), 'utf8');
+</code></pre>
+
+<p>Explanation:</p>
+
+<p>While some methods may approach this task in terms of data precision and tolerance (for example, treating all points within a certain distance of each other as being the same), my library looks purely at <a href="https://en.wikipedia.org/wiki/Degree_(graph_theory)">single valency nodes</a>:</p>
+
+<figure class="rounded-corners drop-shadow small-print pad-top white-background">
+    <img src="/img/valency.jpg"
+         alt="A diagram explaining the concept of valency (degree)." width="90%"/> <figcaption>
+            <h4>The number in each node refers to its valency (or degree).  Notice a pattern?</h4>
+        </figcaption>
+</figure>
+
+
+<p><a href="https://commons.wikimedia.org/wiki/File:UndirectedDegrees_(Loop).svg">Wikipedia - Creative Commons License</a></p>
+
+<p>In this sense it is a more targeted way of correcting network disconnection errors.  For each single valency point, it will look for nearby LineString nodes within a specified distance, and move the LineString edge to the closest point.</p>
+
+<p>The cases I&rsquo;m looking to correct typically look like this:</p>
+
+<figure class="rounded-corners drop-shadow small-print pad-top white-background">
+    <img src="/img/snap_nodes.jpg"
+         alt="A network diagram showing the connections the authors library would like to create." width="90%"/> <figcaption>
+            <h4>Note the links in red.  The library attempts to alter a single valency node&#39;s coordinates to that of the next closest node, when within a specified distance threshold.</h4>
+        </figcaption>
+</figure>
+
+
+<p>While this methodology may fail to correct some network mistakes, the potential for false positives is greatly reduced.</p>
+
+<h3 id="join-consecutive-alike-lines">Join Consecutive Alike Lines</h3>
+
+<p>This one falls under the category of &lsquo;performance optimization&rsquo; rather than &lsquo;network cleaning&rsquo;, but it could amount to a big time savings if your network consists of a lot of small LineString segments that for all intents and purposes are the same (the more nodes and edges your network has to traverse, the slower it will be).</p>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/alike_features.jpg"
+         alt="Two nearly identical LineString features that are next to each other." width="90%"/> <figcaption>
+            <h4>All attributes are identical and the features are adjoining.  Join these into a single feature to save your network routing algorithm a bit of work.</h4>
+        </figcaption>
+</figure>
+
+
+<p>Is there something that can help with this common situation?</p>
+
+<p>Of course!  Here&rsquo;s an example using my <a href="https://github.com/royhobbstn/geojson-linestring-join-alike"><code>geojson-linestring-join-alike</code></a> utility.</p>
+
+<pre><code class="language-bash">npm install geojson-linestring-join-alike --save
+</code></pre>
+
+<pre><code class="language-javascript">const joinAlike = require('geojson-linestring-join-alike');
+const fs = require('fs').promises;
+
+main();
+
+async function main() {
+    // load and parse GeoJSON LineString dataset
+    const geo_raw = await fs.readFile('./alike.geojson', 'utf8');
+    const geo = JSON.parse(geo_raw);
+
+    // determine which attributes must be equal for a pair of line segments
+    // to be considered equal, as well as what to do with the 
+    // remaining attributes (keep highest, calc sum, etc)
+    const attribute_settings = [
+      {field: 'MPH', compare: 'must-equal'},
+      {field: 'STFIPS', compare: 'must-equal'},
+      {field: 'CTFIPS', compare: 'must-equal'},
+      {field: 'SIGN1', compare: 'must-equal'},
+      {field: 'SIGN2', compare: 'must-equal'},
+      {field: 'SIGN3', compare: 'must-equal'},
+      {field: 'ID', compare: 'keep-higher'},
+      {field: 'MILES', compare: 'calc-sum'}];
+
+    // perform joining operation
+    const joined = joinAlike(geo, attribute_settings);
+
+    // save new geojson to file
+    await fs.writeFile('./joined.geojson', JSON.stringify(joined), 'utf8');
+}
+
+</code></pre>
+
+<h3 id="split-crossing-lines">Split Crossing Lines</h3>
+
+<p>This could be great advice or terrible advice depending upon your use case.  If you&rsquo;re working with a very detailed network with complex highway overpasses and tunnels, you probably <strong>don&rsquo;t</strong> want to split lines at every intersection.</p>
+
+<p>In other cases you can be reasonably sure that crossing lines were all supposed to be connected, but due to an error somewhere along the way, some intersections were missed.</p>
+
+<p>Before:</p>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/before_split.jpg"
+         alt="A GeoJSON Network with crossing lines" width="90%"/> <figcaption>
+            <h4>If you know that all your intersections are supposed to be nodes, there are tools that can help.</h4>
+        </figcaption>
+</figure>
+
+
+<p>How to do this?</p>
+
+<p><a href="https://gis.stackexchange.com/questions/98087/split-lines-at-intersection-of-other-lines">There are a number of good ways to split lines at intersections</a>.  But none of those fit well into my workflow, so I created a javascript tool to help:</p>
+
+<p>After:</p>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/after_split.jpg"
+         alt="GeoJSON Network where crossing lines have een split at their intersections" width="90%"/> <figcaption>
+            <h4>After running your dataset through the tool, this would be the result.</h4>
+        </figcaption>
+</figure>
+
+
+<p>Example Code:</p>
+
+<pre><code class="language-bash">npm install geojson-split-crossing-lines --save
+</code></pre>
+
+<pre><code class="language-javascript">const splitLines = require('geojson-split-crossing-lines');
+const fs = require('fs').promises;
+
+main();
+
+async function main() {
+    // load and parse GeoJSON LineString dataset
+    const geo_raw = await fs.readFile('./whole.geojson', 'utf8');
+    const geo = JSON.parse(geo_raw);
+
+    const split = splitLines(geo);
+
+    await fs.writeFile('./split.geojson', JSON.stringify(split), 'utf8');
+}
+</code></pre>
+
+<h3 id="beware-of-isolated-network-areas">Beware of Isolated Network Areas</h3>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/disconnected.jpg"
+         alt="A disconnected portion of a road network" width="90%"/> <figcaption>
+            <h4>You may run into disconnected areas of your network.  Don&#39;t ignore them, or they&#39;ll come back to bite you.</h4>
+        </figcaption>
+</figure>
+
+
+<p>Can&rsquo;t the routing algorithm just avoid these areas?</p>
+
+<p>Well, that&rsquo;s not really how this works.  When you&rsquo;re routing between 2 real points (either lat/lng pairs, zipcodes, city names), the first process your algorithm must do is to convert the input data into real-world network coordinates.</p>
+
+<p>The conversion would go something like this:</p>
+
+<p><strong>A.</strong> Raw Zipcode <em>(54303)</em> -&gt;</p>
+
+<p><strong>B.</strong> Corresponding Centroid Lng/Lat point of Zipcode <em>(ex: -88.05, 44.54)</em> -&gt;</p>
+
+<p><strong>C.</strong> Nearest Point on Network. <em>(Node: &ldquo;-88.06,44.54&rdquo;)</em></p>
+
+<p><sub>(if you need help with step C, see my <a href="https://github.com/royhobbstn/geojson-network-node-lookup">geojson-network-node-lookup</a> project)</sub></p>
+
+<p>If the point C isn&rsquo;t connected to the main network (and thus can&rsquo;t connect to your destination) your route will fail.</p>
+
+<figure class="rounded-corners drop-shadow small-print pad-top">
+    <img src="/img/nearest_point.jpg"
+         alt="Illustrated process to choose routable points on a network" width="90%"/> <figcaption>
+            <h4>Disconnected network areas can wreak havoc on routing</h4>
+        </figcaption>
+</figure>
+
+
+<p>What can I do about this?</p>
+
+<p>The solution is to remove these disconnected pieces from your network.</p>
+
+<p>Example Code:</p>
+
+<pre><code class="language-bash">npm install geojson-to-adjacency-list --save
+</code></pre>
+
+<pre><code class="language-javascript">const fs = require('fs').promises;
+const { connectedComponents } = require('geojson-to-adjacency-list');
+
+main();
+
+async function main() {
+  // load and parse GeoJSON LineString dataset
+  const geojson_raw = await fs.readFile('./sample.geojson');
+  const geojson = JSON.parse(geojson_raw);
+
+  // add a __groupId attribute to each feature corresponding to 
+  // the sub-network that each feature is in.
+  // the largest sub-network (presumably your main network)
+  // is always __groupId=1
+  const components = connectedComponents(geojson);
+  
+  // filter out all features not in your main network
+  const filtered = components.features.map(feature =&gt; {
+    return feature.properties.__routeId === 1;
+   });
+  
+  // turn filtered features back into a GeoJSON FeatureCollection
+  const featureCollection = {
+    &quot;type&quot;: &quot;FeatureCollection&quot;,
+    &quot;features&quot;: filtered
+  };
+  
+  await fs.writeFile('./main_network.geojson', JSON.stringify(featureCollection), 'utf8');
+}
+</code></pre>
+
+<h2 id="resources">Resources</h2>
+
+<p>This is far from an exhaustive list, but should cover some of the more common scenarios. If you&rsquo;d like to dig into some of the code yourself (or if you find a bug) feel free to check out the sources below.</p>
+
+<ul>
+<li><a href="https://github.com/royhobbstn/geojson-network-node-snap">Snap Nearby Nodes (geojson-network-node-snap)</a></li>
+<li><a href="https://github.com/royhobbstn/geojson-linestring-join-alike">Join Alike Lines (geojson-linestring-join-alike)</a></li>
+<li><a href="https://github.com/royhobbstn/geojson-split-crossing-lines">Split Crossing Lines (geojson-split-crossing-lines)</a></li>
+<li><a href="https://github.com/royhobbstn/geojson-to-adjacency-list">Isolated Network Areas (geojson-to-adjacency-list)</a></li>
+</ul>
+
+      
+      
+      
+    </article>
+    
+
+
+  </main>
+  
+  <nav class="pagination-single">
+    
+      <span class="previous">&larr; <a href="https://www.danieltrone.com/post/aws-vector-tiles-cloudfront/" rel="prev">Serving Vector Map Tiles on AWS</a></span>
+    
+    
+  </nav>
+
+
+  
+  <footer role="contentinfo">
+    <div style="text-align:center;">
+      
+      
+    </div>
+  </footer>
+
+
+</div>
+
+<script src="/js/highlight.pack.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
+<script>
+	(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+	(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+	m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+	})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+	ga('create', 'UA-132843468-1', 'auto');
+	ga('send', 'pageview');
+</script>
+
+</body>
+</html>
+
