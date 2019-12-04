@@ -2,7 +2,7 @@ body {
   background-color: #fff;
   font-family: "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
   font-size: 14px;
-  color: #666;
+  color: rgb(85,40,40);
   line-height: 1.6em;
   letter-spacing: 0.5px;
 }
@@ -11,15 +11,18 @@ body {
 }
 h1 {
   font-size: 19px;
+  color: #444;
 }
 h2 {
   font-size: 17px;
+  color: #444;
 }
 h3,
 h4,
 h5,
 h6 {
   font-size: 16px;
+  color: #444;
 }
 header a,
 header a:visited,
